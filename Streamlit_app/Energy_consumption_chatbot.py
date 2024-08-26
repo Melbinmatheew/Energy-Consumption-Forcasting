@@ -217,6 +217,7 @@ def run_energy_qa_app():
     EMBEDDING_PATH = os.path.join("..", "Streamlit_app", "embedding.pkl")
     HUGGINGFACE_API_TOKEN = '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'
 
+    # Load functions
     def load_faiss_index(vector_store_path):
         try:
             return faiss.read_index(vector_store_path)
@@ -392,14 +393,14 @@ def run_energy_qa_app():
     
     if user_question:
         display_chat_message("human", user_question, "🫅🏻")
-
-        with st.spinner("Thinking..."):
-            response = get_response(user_question, retrieval_chain, general_responses)
-            display_chat_message("bot", response, "🧙🏻‍♂️")
-
-        # Add the new question and answer to the conversation history
-        st.session_state.conversation.append((user_question, response))
-
-# If this script is run directly, execute the app
-# if __name__ == "__main__":
-#     run_energy_qa_app()
+        
+        bot_response = get_response(user_question, retrieval_chain, general_responses)
+        
+        display_chat_message("bot", bot_response, "🧙🏻‍♂️")
+        
+        # Save conversation history in session state
+        st.session_state.conversation.append((user_question, bot_response))
+    
+# The main block is necessary to avoid running the app when importing the script.
+if __name__ == "__main__":
+    run_energy_qa_app()
