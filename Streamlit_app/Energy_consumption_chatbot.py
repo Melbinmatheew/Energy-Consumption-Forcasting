@@ -211,14 +211,17 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 
 def run_energy_qa_app():
     # Constants
-    VECTOR_STORE_PATH = os.path.join("..", "Streamlit_app", "vector_store.index")
-    DOCSTORE_PATH = os.path.join("..", "Streamlit_app", "docstore.pkl")
-    INDEX_TO_DOCSTORE_ID_PATH = os.path.join("..", "Streamlit_app", "index_to_docstore_id.pkl")
-    EMBEDDING_PATH = os.path.join("..", "Streamlit_app", "embedding.pkl")
+    VECTOR_STORE_PATH = "..\Streamlit_app\vector_store.index"
+    DOCSTORE_PATH = "..\Streamlit_app\docstore.pkl"
+    INDEX_TO_DOCSTORE_ID_PATH = "..\Streamlit_app\index_to_docstore_id.pkl"
+    EMBEDDING_PATH = "..\Streamlit_app\embedding.pkl"
     HUGGINGFACE_API_TOKEN = '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'
 
     # Load functions
     def load_faiss_index(vector_store_path):
+        if not os.path.exists(vector_store_path):
+            st.error(f"FAISS index file not found: {vector_store_path}")
+            return None
         try:
             return faiss.read_index(vector_store_path)
         except Exception as e:
