@@ -431,5 +431,5 @@ def run_energy_qa_app():
                 display_chat_message("human", user_question, "🫅🏻")
                 display_chat_message("bot", answer, "🧙🏻‍♂️")
 
-    if __name__ == "__main__":
-        main()
+    # if __name__ == "__main__":
+    main()
