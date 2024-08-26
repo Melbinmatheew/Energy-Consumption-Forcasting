@@ -198,10 +198,8 @@
 # #     run_energy_qa_app()
 
 
-
 import faiss
 import pickle
-import os
 import streamlit as st
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -210,47 +208,34 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
+# Constants
+VECTOR_STORE_PATH = r"..\Streamlit_app\vector_store.index"
+DOCSTORE_PATH = r"..\Streamlit_app\docstore.pkl"
+INDEX_TO_DOCSTORE_ID_PATH = r"..\Streamlit_app\index_to_docstore_id.pkl"
+EMBEDDING_PATH = r"..\Streamlit_app\embedding.pkl"
+HUGGINGFACE_API_TOKEN = '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'
+
 def run_energy_qa_app():
-    # Constants
-    INDEX_PATH = r"..\Streamlit_app\vector_store.index"
-    DOCSTORE_PATH = r"..\Streamlit_app\docstore.pkl"
-    INDEX_TO_DOCSTORE_ID_PATH = r"..\Streamlit_app\index_to_docstore_id.pkl"
-    EMBEDDINGS_PATH = r"..\Streamlit_app\embedding.pkl"
-    HF_API_TOKEN = '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'
-
     # Helper Functions
-    def load_file(file_path):
-        if not os.path.isfile(file_path):
-            print(f"File not found: {file_path}")
-            return None
-        try:
-            with open(file_path, "rb") as f:
-                return pickle.load(f)
-        except Exception as e:
-            print(f"An error occurred while loading {file_path}: {e}")
-            return None
-
     def load_components():
-        try:
-            index = faiss.read_index(INDEX_PATH)
-        except Exception as e:
-            print(f"An error occurred while reading the FAISS index: {e}")
-            return None, None, None, None
-
-        docstore = load_file(DOCSTORE_PATH)
-        index_to_docstore_id = load_file(INDEX_TO_DOCSTORE_ID_PATH)
-        embeddings = load_file(EMBEDDINGS_PATH)
-
-        if any(component is None for component in [index, docstore, index_to_docstore_id, embeddings]):
-            return None, None, None, None
-
+        index = faiss.read_index(VECTOR_STORE_PATH)
+        
+        with open(DOCSTORE_PATH, "rb") as f:
+            docstore = pickle.load(f)
+        
+        with open(INDEX_TO_DOCSTORE_ID_PATH, "rb") as f:
+            index_to_docstore_id = pickle.load(f)
+        
+        with open(EMBEDDING_PATH, "rb") as f:
+            embeddings = pickle.load(f)
+        
         return index, docstore, index_to_docstore_id, embeddings
 
     def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
         return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
 
     def init_language_model():
-        return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token=HF_API_TOKEN)
+        return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token=HUGGINGFACE_API_TOKEN)
 
     def create_prompt():
         prompt_template = """
@@ -278,20 +263,20 @@ def run_energy_qa_app():
         
         if normalized_query in general_responses:
             return general_responses[normalized_query]
-        
-        response = retrieval_chain.invoke({"input": query})
-        answer = response["answer"]
-        
-        answer_marker = "Answer:"
-        start_index = answer.find(answer_marker)
-        
-        if start_index != -1:
-            generated_output = answer[start_index + len(answer_marker):].strip()
-            return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
-        
-        return "Answer marker not found. Here is the raw response:\n" + answer.strip()
+        else:
+            response = retrieval_chain.invoke({"input": query})
+            answer = response["answer"]
+            
+            answer_marker = "Answer:"
+            start_index = answer.find(answer_marker)
+            
+            if start_index != -1:
+                generated_output = answer[start_index + len(answer_marker):].strip()
+                return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
+            else:
+                return "Answer marker not found. Here is the raw response:\n" + answer.strip()
 
-    # Streamlit UI Functions
+    # UI Functions
     def set_custom_style():
         st.markdown("""
         <style>
@@ -325,16 +310,17 @@ def run_energy_qa_app():
 
     def display_chat_message(role, content, avatar):
         message_class = "user" if role == "human" else "bot"
-        st.markdown(f"""
-        <div class="chat-message {message_class}">
-            <div class="avatar">
-                <span class="avatar-icon">{avatar}</span>
+        with st.container():
+            st.markdown(f"""
+            <div class="chat-message {message_class}">
+                <div class="avatar">
+                    <span class="avatar-icon">{avatar}</span>
+                </div>
+                <div class="message">
+                    <p>{content}</p>
+                </div>
             </div>
-            <div class="message">
-                <p>{content}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
     def create_sidebar():
         st.sidebar.title("Example Questions")
@@ -346,7 +332,7 @@ def run_energy_qa_app():
         - What are the benefits of renewable energy sources?
         """)
 
-    # Main Application
+    # Main App Logic
     st.set_page_config(page_title="Energy Q&A Assistant", page_icon="⚡", layout="wide")
     
     set_custom_style()
@@ -357,14 +343,17 @@ def run_energy_qa_app():
 
     # Load components
     index, docstore, index_to_docstore_id, embeddings = load_components()
-    if any(component is None for component in [index, docstore, index_to_docstore_id, embeddings]):
-        st.error("Failed to load the necessary components. Please check the logs for more details.")
-        return
     
-    # Create vector store and initialize other components
+    # Create vector store
     vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
+    
+    # Initialize language model
     llm = init_language_model()
+    
+    # Create prompt
     prompt = create_prompt()
+    
+    # Create retrieval chain
     retrieval_chain = create_chains(llm, prompt, vector_store)
     
     # Define general responses
@@ -383,19 +372,23 @@ def run_energy_qa_app():
     if 'conversation' not in st.session_state:
         st.session_state.conversation = []
 
-    # Display previous conversation
-    for question, answer in st.session_state.conversation:
+    for i, (question, answer) in enumerate(st.session_state.conversation):
         display_chat_message("human", question, "🫅🏻")
         display_chat_message("bot", answer, "🧙🏻‍♂️")
 
-    # Handle new user input
-    user_question = st.chat_input("Ask your question...")
+    # Create a text input for user questions
+    user_question = st.chat_input("Ask a question about energy:")
+    
     if user_question:
-        with st.spinner("Processing your question..."):
-            answer = get_response(user_question, retrieval_chain, general_responses)
-            st.session_state.conversation.append((user_question, answer))
-            display_chat_message("human", user_question, "🫅🏻")
-            display_chat_message("bot", answer, "🧙🏻‍♂️")
+        display_chat_message("human", user_question, "🫅🏻")
 
+        with st.spinner("Thinking..."):
+            response = get_response(user_question, retrieval_chain, general_responses)
+            display_chat_message("bot", response, "🧙🏻‍♂️")
+
+        # Add the new question and answer to the conversation history
+        st.session_state.conversation.append((user_question, response))
+
+# If this script is run directly, execute the app
 if __name__ == "__main__":
     run_energy_qa_app()
