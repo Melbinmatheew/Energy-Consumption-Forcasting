@@ -402,5 +402,5 @@ def run_energy_qa_app():
         st.session_state.conversation.append((user_question, bot_response))
     
 # The main block is necessary to avoid running the app when importing the script.
-if __name__ == "__main__":
+# if __name__ == "__main__":
     run_energy_qa_app()
