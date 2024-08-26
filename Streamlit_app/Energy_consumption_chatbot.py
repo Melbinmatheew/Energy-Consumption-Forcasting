@@ -333,7 +333,7 @@ def run_energy_qa_app():
         """)
 
     # Main App Logic
-    st.set_page_config(page_title="Energy Q&A Assistant", page_icon="⚡", layout="wide")
+    # st.set_page_config(page_title="Energy Q&A Assistant", page_icon="⚡", layout="wide")
     
     set_custom_style()
     create_sidebar()
