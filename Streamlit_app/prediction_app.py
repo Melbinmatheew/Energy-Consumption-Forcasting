@@ -22,20 +22,20 @@ def categorize_month(month):
 
 @st.cache_resource
 def load_model():
-    with open("..\Steamlit_app\prophet_model.pkl", 'rb') as f:
+    with open("..\Streamlit_app\prophet_model.pkl", 'rb') as f:
         return pickle.load(f)
 
 # Q&A Bot functions
 def load_components():
-    index = faiss.read_index(r"..\Steamlit_app\vector_store.index")
+    index = faiss.read_index(r"..\Streamlit_app\vector_store.index")
     
-    with open("..\Steamlit_app\docstore.pkl", "rb") as f:
+    with open("..\Streamlit_app\docstore.pkl", "rb") as f:
         docstore = pickle.load(f)
     
-    with open("..\Steamlit_app\index_to_docstore_id.pkl", "rb") as f:
+    with open("..\Streamlit_app\index_to_docstore_id.pkl", "rb") as f:
         index_to_docstore_id = pickle.load(f)
     
-    with open("..\Steamlit_app\embedding.pkl", "rb") as f:
+    with open("..\Streamlit_app\embedding.pkl", "rb") as f:
         embeddings = pickle.load(f)
     
     return index, docstore, index_to_docstore_id, embeddings
