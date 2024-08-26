@@ -198,6 +198,7 @@
 # #     run_energy_qa_app()
 
 
+import os
 import faiss
 import pickle
 import streamlit as st
@@ -208,148 +209,140 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
-# Constants
-VECTOR_STORE_PATH = r"..\Streamlit_app\vector_store.index"
-DOCSTORE_PATH = r"..\Streamlit_app\docstore.pkl"
-INDEX_TO_DOCSTORE_ID_PATH = r"..\Streamlit_app\index_to_docstore_id.pkl"
-EMBEDDING_PATH = r"..\Streamlit_app\embedding.pkl"
-HUGGINGFACE_API_TOKEN = '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'
+def run_energy_qa_app():
+    # Constants
+    VECTOR_STORE_PATH = os.path.join("..", "Streamlit_app", "vector_store.index")
+    DOCSTORE_PATH = os.path.join("..", "Streamlit_app", "docstore.pkl")
+    INDEX_TO_DOCSTORE_ID_PATH = os.path.join("..", "Streamlit_app", "index_to_docstore_id.pkl")
+    EMBEDDING_PATH = os.path.join("..", "Streamlit_app", "embedding.pkl")
+    HUGGINGFACE_API_TOKEN = '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'
 
-def load_components():
-    try:
-        # Load FAISS index
-        index = faiss.read_index(VECTOR_STORE_PATH)
-    except Exception as e:
-        st.error(f"Error loading FAISS index: {e}")
-        return None, None, None, None
-    
-    try:
-        # Load document store
-        with open(DOCSTORE_PATH, "rb") as f:
-            docstore = pickle.load(f)
-    except Exception as e:
-        st.error(f"Error loading document store: {e}")
-        return None, None, None, None
+    def load_faiss_index(vector_store_path):
+        try:
+            return faiss.read_index(vector_store_path)
+        except Exception as e:
+            st.error(f"Error loading FAISS index: {e}")
+            return None
 
-    try:
-        # Load index-to-docstore ID mapping
-        with open(INDEX_TO_DOCSTORE_ID_PATH, "rb") as f:
-            index_to_docstore_id = pickle.load(f)
-    except Exception as e:
-        st.error(f"Error loading index-to-docstore ID mapping: {e}")
-        return None, None, None, None
+    def load_pickle_file(file_path, error_message):
+        try:
+            with open(file_path, "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            st.error(f"{error_message}: {e}")
+            return None
 
-    try:
-        # Load embeddings
-        with open(EMBEDDING_PATH, "rb") as f:
-            embeddings = pickle.load(f)
-    except Exception as e:
-        st.error(f"Error loading embeddings: {e}")
-        return None, None, None, None
-
-    return index, docstore, index_to_docstore_id, embeddings
-
-def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
-    return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
-
-def init_language_model():
-    return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token=HUGGINGFACE_API_TOKEN)
-
-def create_prompt():
-    prompt_template = """
-    You are a Q&A assistant specializing in energy-related topics based on the content of a provided PDF.
-    Your goal is to provide accurate and concise answers to questions specifically about energy consumption or related subjects covered in the PDF.
-
-    1. **Answer the question** with a brief paragraph summarizing the relevant information from the PDF. Don't say you are answering from PDF but directly answer the question.
-    2. **Explain the reason for your answer** in a second paragraph by referring to the specific content or details from the PDF that support your response.
-    3. **If the question does not pertain to energy or the content of the PDF**, respond with: "This question is not related to the topics covered in the provided PDF."
-
-    {context}
-
-    Question: {input}
-    Answer:
-    """
-    return ChatPromptTemplate.from_template(prompt_template)
-
-def create_chains(llm, prompt, vector_store):
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retriever = vector_store.as_retriever()
-    return create_retrieval_chain(retriever, document_chain)
-
-def get_response(query, retrieval_chain, general_responses):
-    normalized_query = query.lower().strip()
-    
-    if normalized_query in general_responses:
-        return general_responses[normalized_query]
-    else:
-        response = retrieval_chain.invoke({"input": query})
-        answer = response["answer"]
+    def load_components():
+        index = load_faiss_index(VECTOR_STORE_PATH)
+        docstore = load_pickle_file(DOCSTORE_PATH, "Error loading document store")
+        index_to_docstore_id = load_pickle_file(INDEX_TO_DOCSTORE_ID_PATH, "Error loading index-to-docstore ID mapping")
+        embeddings = load_pickle_file(EMBEDDING_PATH, "Error loading embeddings")
         
-        answer_marker = "Answer:"
-        start_index = answer.find(answer_marker)
+        if None in [index, docstore, index_to_docstore_id, embeddings]:
+            return None, None, None, None
         
-        if start_index != -1:
-            generated_output = answer[start_index + len(answer_marker):].strip()
-            return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
+        return index, docstore, index_to_docstore_id, embeddings
+
+    def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
+        return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
+
+    def init_language_model():
+        return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token=HUGGINGFACE_API_TOKEN)
+
+    def create_prompt():
+        prompt_template = """
+        You are a Q&A assistant specializing in energy-related topics based on the content of a provided PDF.
+        Your goal is to provide accurate and concise answers to questions specifically about energy consumption or related subjects covered in the PDF.
+
+        1. **Answer the question** with a brief paragraph summarizing the relevant information from the PDF. Don't say you are answering from PDF but directly answer the question.
+        2. **Explain the reason for your answer** in a second paragraph by referring to the specific content or details from the PDF that support your response.
+        3. **If the question does not pertain to energy or the content of the PDF**, respond with: "This question is not related to the topics covered in the provided PDF."
+
+        {context}
+
+        Question: {input}
+        Answer:
+        """
+        return ChatPromptTemplate.from_template(prompt_template)
+
+    def create_chains(llm, prompt, vector_store):
+        document_chain = create_stuff_documents_chain(llm, prompt)
+        retriever = vector_store.as_retriever()
+        return create_retrieval_chain(retriever, document_chain)
+
+    def get_response(query, retrieval_chain, general_responses):
+        normalized_query = query.lower().strip()
+        
+        if normalized_query in general_responses:
+            return general_responses[normalized_query]
         else:
-            return "Answer marker not found. Here is the raw response:\n" + answer.strip()
+            response = retrieval_chain.invoke({"input": query})
+            answer = response["answer"]
+            
+            answer_marker = "Answer:"
+            start_index = answer.find(answer_marker)
+            
+            if start_index != -1:
+                generated_output = answer[start_index + len(answer_marker):].strip()
+                return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
+            else:
+                return "Answer marker not found. Here is the raw response:\n" + answer.strip()
 
-def set_custom_style():
-    st.markdown("""
-    <style>
-    .chat-message {
-        padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex
-    }
-    .chat-message.user {
-        background-color: #2b313e;
-        color: #ffffff;
-        border-bottom-right-radius: 0;
-        margin-left: 40%;
-    }
-    .chat-message.bot {
-        background-color: #475063;
-        color: #ffffff;
-        border-bottom-left-radius: 0;
-        margin-right: 40%;
-    }
-    .chat-message .avatar {
-      width: 20%;
-    }
-    .chat-message .message {
-      width: 80%;
-      padding: 0 1.5rem;
-    }
-    .avatar-icon {
-      font-size: 2rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-def display_chat_message(role, content, avatar):
-    message_class = "user" if role == "human" else "bot"
-    with st.container():
-        st.markdown(f"""
-        <div class="chat-message {message_class}">
-            <div class="avatar">
-                <span class="avatar-icon">{avatar}</span>
-            </div>
-            <div class="message">
-                <p>{content}</p>
-            </div>
-        </div>
+    def set_custom_style():
+        st.markdown("""
+        <style>
+        .chat-message {
+            padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex
+        }
+        .chat-message.user {
+            background-color: #2b313e;
+            color: #ffffff;
+            border-bottom-right-radius: 0;
+            margin-left: 40%;
+        }
+        .chat-message.bot {
+            background-color: #475063;
+            color: #ffffff;
+            border-bottom-left-radius: 0;
+            margin-right: 40%;
+        }
+        .chat-message .avatar {
+          width: 20%;
+        }
+        .chat-message .message {
+          width: 80%;
+          padding: 0 1.5rem;
+        }
+        .avatar-icon {
+          font-size: 2rem;
+        }
+        </style>
         """, unsafe_allow_html=True)
 
-def create_sidebar():
-    st.sidebar.title("Example Questions")
-    st.sidebar.write("""
-    - What are some ways to reduce energy consumption at home?
-    - How can I make my home more energy-efficient?
-    - What is the impact of energy-saving appliances on my electricity bill?
-    - How can I track my energy usage effectively?
-    - What are the benefits of renewable energy sources?
-    """)
+    def display_chat_message(role, content, avatar):
+        message_class = "user" if role == "human" else "bot"
+        with st.container():
+            st.markdown(f"""
+            <div class="chat-message {message_class}">
+                <div class="avatar">
+                    <span class="avatar-icon">{avatar}</span>
+                </div>
+                <div class="message">
+                    <p>{content}</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-def run_energy_qa_app():
+    def create_sidebar():
+        st.sidebar.title("Example Questions")
+        st.sidebar.write("""
+        - What are some ways to reduce energy consumption at home?
+        - How can I make my home more energy-efficient?
+        - What is the impact of energy-saving appliances on my electricity bill?
+        - How can I track my energy usage effectively?
+        - What are the benefits of renewable energy sources?
+        """)
+
     # UI Functions
     set_custom_style()
     create_sidebar()
@@ -408,5 +401,5 @@ def run_energy_qa_app():
         st.session_state.conversation.append((user_question, response))
 
 # If this script is run directly, execute the app
-if __name__ == "__main__":
-    run_energy_qa_app()
+# if __name__ == "__main__":
+#     run_energy_qa_app()
