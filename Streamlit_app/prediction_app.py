@@ -13,6 +13,18 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
+import faiss
+import pickle
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.llms import HuggingFaceHub
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.memory import ConversationBufferMemory
+import streamlit as st
+
+
 # Forecasting functions
 def summer_temp(temp):
     return 1 if temp > 20 else 0
