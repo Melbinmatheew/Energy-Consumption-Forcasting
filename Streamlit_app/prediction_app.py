@@ -6,7 +6,7 @@ import streamlit as st
 import pickle
 from datetime import datetime, timedelta
 # import faiss
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms import HuggingFaceHub
 from langchain_core.prompts import ChatPromptTemplate
