@@ -5,7 +5,7 @@ import plotly.express as px
 import streamlit as st
 import pickle
 from datetime import datetime, timedelta
-import faiss
+# import faiss
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms import HuggingFaceHub
@@ -27,7 +27,7 @@ def load_model():
 
 # Q&A Bot functions
 def load_components():
-    index = faiss.read_index(r"..\Streamlit_app\vector_store.index")
+    index = FAISS.read_index(r"..\Streamlit_app\vector_store.index")
     
     with open("..\Streamlit_app\docstore.pkl", "rb") as f:
         docstore = pickle.load(f)
