@@ -21,4 +21,5 @@
 streamlit
 plotly
 langchain
-matplotlib
+matplotlib==3.9.1
+matplotlib-inline==0.1.7
