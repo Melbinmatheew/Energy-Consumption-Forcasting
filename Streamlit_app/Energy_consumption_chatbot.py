@@ -200,53 +200,42 @@
 
 import faiss
 import pickle
+import os
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.llms import HuggingFaceHub
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.memory import ConversationBufferMemory
 import streamlit as st
-import os
 
 def run_energy_qa_app():
-    # Function to load saved components
     def load_components():
-        try:
-            index = faiss.read_index(r"..\Streamlit_app\vector_store.index")
-            with open(r"..\Streamlit_app\docstore.pkl", "rb") as f:
-                docstore = pickle.load(f)
-            with open(r"..\Streamlit_app\index_to_docstore_id.pkl", "rb") as f:
-                index_to_docstore_id = pickle.load(f)
-            with open(r"..\Streamlit_app\embedding.pkl", "rb") as f:
-                embeddings = pickle.load(f)
-            print("Components loaded successfully.")  # Debug statement
-            return index, docstore, index_to_docstore_id, embeddings
-        except Exception as e:
-            st.error(f"Error loading components: {e}")
-            print(f"Error loading components: {e}")
-            raise
+        base_path = "..\Streamlit_app"  # Base directory
+        index_path = os.path.join(base_path, "vector_store.index")
+        docstore_path = os.path.join(base_path, "docstore.pkl")
+        index_to_docstore_id_path = os.path.join(base_path, "index_to_docstore_id.pkl")
+        embeddings_path = os.path.join(base_path, "embedding.pkl")
+        
+        index = faiss.read_index(index_path)
+        
+        with open(docstore_path, "rb") as f:
+            docstore = pickle.load(f)
+        
+        with open(index_to_docstore_id_path, "rb") as f:
+            index_to_docstore_id = pickle.load(f)
+        
+        with open(embeddings_path, "rb") as f:
+            embeddings = pickle.load(f)
+        
+        return index, docstore, index_to_docstore_id, embeddings
 
-    # Function to create FAISS vector store
     def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
-        try:
-            return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
-        except Exception as e:
-            st.error(f"Error creating vector store: {e}")
-            print(f"Error creating vector store: {e}")
-            raise
+        return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
 
-    # Function to initialize language model
     def init_language_model():
-        try:
-            return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token='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')
-        except Exception as e:
-            st.error(f"Error initializing language model: {e}")
-            print(f"Error initializing language model: {e}")
-            raise
+        return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token='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')
 
-    # Function to create prompt template
     def create_prompt():
         prompt_template = """
         You are a Q&A assistant specializing in energy-related topics based on the content of a provided PDF.
@@ -263,39 +252,29 @@ def run_energy_qa_app():
         """
         return ChatPromptTemplate.from_template(prompt_template)
 
-    # Function to create retrieval chain
     def create_chains(llm, prompt, vector_store):
-        try:
-            document_chain = create_stuff_documents_chain(llm, prompt)
-            retriever = vector_store.as_retriever()
-            return create_retrieval_chain(retriever, document_chain)
-        except Exception as e:
-            st.error(f"Error creating retrieval chain: {e}")
-            print(f"Error creating retrieval chain: {e}")
-            raise
+        document_chain = create_stuff_documents_chain(llm, prompt)
+        retriever = vector_store.as_retriever()
+        return create_retrieval_chain(retriever, document_chain)
 
-    # Function to get response
     def get_response(query, retrieval_chain, general_responses):
-        try:
-            normalized_query = query.lower().strip()
-            if normalized_query in general_responses:
-                return general_responses[normalized_query]
+        normalized_query = query.lower().strip()
+        
+        if normalized_query in general_responses:
+            return general_responses[normalized_query]
+        else:
+            response = retrieval_chain.invoke({"input": query})
+            answer = response["answer"]
+            
+            answer_marker = "Answer:"
+            start_index = answer.find(answer_marker)
+            
+            if start_index != -1:
+                generated_output = answer[start_index + len(answer_marker):].strip()
+                return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
             else:
-                response = retrieval_chain.invoke({"input": query})
-                answer = response["answer"]
-                answer_marker = "Answer:"
-                start_index = answer.find(answer_marker)
-                if start_index != -1:
-                    generated_output = answer[start_index + len(answer_marker):].strip()
-                    return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
-                else:
-                    return "Answer marker not found. Here is the raw response:\n" + answer.strip()
-        except Exception as e:
-            st.error(f"Error getting response: {e}")
-            print(f"Error getting response: {e}")
-            return "An error occurred while processing your request."
+                return "Answer marker not found. Here is the raw response:\n" + answer.strip()
 
-    # Function to set custom style for the chat messages
     def set_custom_style():
         st.markdown("""
         <style>
@@ -327,7 +306,6 @@ def run_energy_qa_app():
         </style>
         """, unsafe_allow_html=True)
 
-    # Function to display chat messages in a styled format
     def display_chat_message(role, content, avatar):
         message_class = "user" if role == "human" else "bot"
         with st.container():
@@ -342,7 +320,6 @@ def run_energy_qa_app():
             </div>
             """, unsafe_allow_html=True)
 
-    # Function to create sidebar with example questions
     def create_sidebar():
         st.sidebar.title("Example Questions")
         st.sidebar.write("""
@@ -353,58 +330,50 @@ def run_energy_qa_app():
         - What are the benefits of renewable energy sources?
         """)
 
-    # Main function to run the Streamlit app
     def main():
-        try:
-            set_custom_style()
-            create_sidebar()
+        set_custom_style()
+        create_sidebar()
 
-            st.title("✨ Energy Q&A Assistant")
-            st.markdown("Ask questions about energy consumption and get informed answers!")
+        st.title("✨ Energy Q&A Assistant")
+        st.markdown("Ask questions about energy consumption and get informed answers!")
 
-            index, docstore, index_to_docstore_id, embeddings = load_components()
+        index, docstore, index_to_docstore_id, embeddings = load_components()
+        vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
+        llm = init_language_model()
+        prompt = create_prompt()
+        retrieval_chain = create_chains(llm, prompt, vector_store)
 
-            vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
+        general_responses = {
+            "hello": "Hello! How can I assist you today?",
+            "hi": "Hi! How can I help you?",
+            "how are you": "I'm just a bot, but I'm here to help! How can I assist you today?",
+            "who are you": "I am a Q&A assistant specializing in energy-related topics, but I can also handle general queries.",
+            "how can you assist me": "I can answer questions related to energy consumption, ways to reduce energy usage, tips for saving energy, and more. Feel free to ask anything related to energy!",
+            "what can you do": "I can provide information on energy usage, tips on saving energy, and help you understand your energy consumption better.",
+            "thank you": "You're welcome! If you have any more questions, feel free to ask.",
+            "goodbye": "Goodbye! Have an energy-efficient day!",
+        }
 
-            llm = init_language_model()
+        if 'conversation' not in st.session_state:
+            st.session_state.conversation = []
 
-            prompt = create_prompt()
+        for i, (question, answer) in enumerate(st.session_state.conversation):
+            display_chat_message("human", question, "🫅🏻")
+            display_chat_message("bot", answer, "🧙🏻‍♂️")
 
-            retrieval_chain = create_chains(llm, prompt, vector_store)
+        user_question = st.chat_input("Ask a question about energy:")
+        
+        if user_question:
+            display_chat_message("human", user_question, "🫅🏻")
 
-            general_responses = {
-                "hello": "Hello! How can I assist you today?",
-                "hi": "Hi! How can I help you?",
-                "how are you": "I'm just a bot, but I'm here to help! How can I assist you today?",
-                "who are you": "I am a Q&A assistant specializing in energy-related topics, but I can also handle general queries.",
-                "how can you assist me": "I can answer questions related to energy consumption, ways to reduce energy usage, tips for saving energy, and more. Feel free to ask anything related to energy!",
-                "what can you do": "I can provide information on energy usage, tips on saving energy, and help you understand your energy consumption better.",
-                "thank you": "You're welcome! If you have any more questions, feel free to ask.",
-                "goodbye": "Goodbye! Have an energy-efficient day!",
-            }
+            with st.spinner("Thinking..."):
+                response = get_response(user_question, retrieval_chain, general_responses)
+                display_chat_message("bot", response, "🧙🏻‍♂️")
 
-            if 'conversation' not in st.session_state:
-                st.session_state.conversation = []
+            st.session_state.conversation.append((user_question, response))
 
-            for i, (question, answer) in enumerate(st.session_state.conversation):
-                display_chat_message("human", question, "🫅🏻")
-                display_chat_message("bot", answer, "🧙🏻‍♂️")
+    main()
 
-            user_question = st.chat_input("Ask a question about energy:")
-
-            if user_question:
-                display_chat_message("human", user_question, "🫅🏻")
-
-                with st.spinner("Thinking..."):
-                    response = get_response(user_question, retrieval_chain, general_responses)
-                    display_chat_message("bot", response, "🧙🏻‍♂️")
-
-                st.session_state.conversation.append((user_question, response))
-
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
-            print(f"An unexpected error occurred: {e}")
-
-    if __name__ == "__main__":
-        main()
-
+# Uncomment the following line to run the app directly
+# if __name__ == "__main__":
+#     run_energy_qa_app()
