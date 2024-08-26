@@ -1,29 +1,17 @@
 import numpy as np
 import pandas as pd
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import plotly.express as px
 import streamlit as st
 import pickle
 from datetime import datetime, timedelta
-# import faiss
-from langchain.vectorstores import FAISS
+import faiss
+from langchain_community.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms import HuggingFaceHub
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-
-import faiss
-import pickle
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain.llms import HuggingFaceHub
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.memory import ConversationBufferMemory
-import streamlit as st
-
 
 # Forecasting functions
 def summer_temp(temp):
@@ -39,7 +27,7 @@ def load_model():
 
 # Q&A Bot functions
 def load_components():
-    index = FAISS.read_index(r"..\Streamlit_app\vector_store.index")
+    index = faiss.read_index(r"..\Streamlit_app\vector_store.index")
     
     with open("..\Streamlit_app\docstore.pkl", "rb") as f:
         docstore = pickle.load(f)
