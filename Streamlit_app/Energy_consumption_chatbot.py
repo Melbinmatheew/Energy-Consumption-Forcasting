@@ -201,6 +201,7 @@
 import faiss
 import pickle
 import os
+import logging
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.llms import HuggingFaceHub
@@ -209,32 +210,53 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 import streamlit as st
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 def run_energy_qa_app():
     def load_components():
-        base_path = "..\Streamlit_app"  # Base directory
+        base_path = "../Streamlit_app"  # Base directory
         index_path = os.path.join(base_path, "vector_store.index")
         docstore_path = os.path.join(base_path, "docstore.pkl")
         index_to_docstore_id_path = os.path.join(base_path, "index_to_docstore_id.pkl")
         embeddings_path = os.path.join(base_path, "embedding.pkl")
+
+        try:
+            index = faiss.read_index(index_path)
+        except Exception as e:
+            logging.error(f"Error loading FAISS index: {e}")
+            st.error("Failed to load FAISS index.")
+            return None, None, None, None
         
-        index = faiss.read_index(index_path)
-        
-        with open(docstore_path, "rb") as f:
-            docstore = pickle.load(f)
-        
-        with open(index_to_docstore_id_path, "rb") as f:
-            index_to_docstore_id = pickle.load(f)
-        
-        with open(embeddings_path, "rb") as f:
-            embeddings = pickle.load(f)
+        try:
+            with open(docstore_path, "rb") as f:
+                docstore = pickle.load(f)
+            with open(index_to_docstore_id_path, "rb") as f:
+                index_to_docstore_id = pickle.load(f)
+            with open(embeddings_path, "rb") as f:
+                embeddings = pickle.load(f)
+        except Exception as e:
+            logging.error(f"Error loading pickle files: {e}")
+            st.error("Failed to load data from pickle files.")
+            return None, None, None, None
         
         return index, docstore, index_to_docstore_id, embeddings
 
     def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
-        return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
+        try:
+            return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
+        except Exception as e:
+            logging.error(f"Error creating FAISS vector store: {e}")
+            st.error("Failed to create vector store.")
+            return None
 
     def init_language_model():
-        return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token='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')
+        try:
+            return HuggingFaceHub(repo_id="HuggingFaceH4/zephyr-7b-beta", huggingfacehub_api_token='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')
+        except Exception as e:
+            logging.error(f"Error initializing language model: {e}")
+            st.error("Failed to initialize language model.")
+            return None
 
     def create_prompt():
         prompt_template = """
@@ -253,9 +275,14 @@ def run_energy_qa_app():
         return ChatPromptTemplate.from_template(prompt_template)
 
     def create_chains(llm, prompt, vector_store):
-        document_chain = create_stuff_documents_chain(llm, prompt)
-        retriever = vector_store.as_retriever()
-        return create_retrieval_chain(retriever, document_chain)
+        try:
+            document_chain = create_stuff_documents_chain(llm, prompt)
+            retriever = vector_store.as_retriever()
+            return create_retrieval_chain(retriever, document_chain)
+        except Exception as e:
+            logging.error(f"Error creating chains: {e}")
+            st.error("Failed to create retrieval chains.")
+            return None
 
     def get_response(query, retrieval_chain, general_responses):
         normalized_query = query.lower().strip()
@@ -263,17 +290,21 @@ def run_energy_qa_app():
         if normalized_query in general_responses:
             return general_responses[normalized_query]
         else:
-            response = retrieval_chain.invoke({"input": query})
-            answer = response["answer"]
-            
-            answer_marker = "Answer:"
-            start_index = answer.find(answer_marker)
-            
-            if start_index != -1:
-                generated_output = answer[start_index + len(answer_marker):].strip()
-                return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
-            else:
-                return "Answer marker not found. Here is the raw response:\n" + answer.strip()
+            try:
+                response = retrieval_chain.invoke({"input": query})
+                answer = response["answer"]
+                
+                answer_marker = "Answer:"
+                start_index = answer.find(answer_marker)
+                
+                if start_index != -1:
+                    generated_output = answer[start_index + len(answer_marker):].strip()
+                    return "\n".join(line.strip() for line in generated_output.splitlines() if line.strip())
+                else:
+                    return "Answer marker not found. Here is the raw response:\n" + answer.strip()
+            except Exception as e:
+                logging.error(f"Error getting response: {e}")
+                return "Failed to get a response. Please try again."
 
     def set_custom_style():
         st.markdown("""
@@ -338,10 +369,18 @@ def run_energy_qa_app():
         st.markdown("Ask questions about energy consumption and get informed answers!")
 
         index, docstore, index_to_docstore_id, embeddings = load_components()
+        if index is None:
+            return
         vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
+        if vector_store is None:
+            return
         llm = init_language_model()
+        if llm is None:
+            return
         prompt = create_prompt()
         retrieval_chain = create_chains(llm, prompt, vector_store)
+        if retrieval_chain is None:
+            return
 
         general_responses = {
             "hello": "Hello! How can I assist you today?",
