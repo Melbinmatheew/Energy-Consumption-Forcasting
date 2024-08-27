@@ -8,11 +8,13 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.memory import ConversationBufferMemory
 import streamlit as st
+import os
 
 def run_energy_qa_app():
     # Function to load saved components
     def load_components():
-        index = faiss.read_index(r"..\Streamlit_app\vector_store.index")
+        file_path = os.path.abspath("../Streamlit_app/vector_store.index")
+        index = faiss.read_index(file_path)
         
         with open("..\Streamlit_app\docstore.pkl", "rb") as f:
             docstore = pickle.load(f)
@@ -194,7 +196,7 @@ def run_energy_qa_app():
 
     main()
 
-# if __name__ == "__main__":
-#     run_energy_qa_app()
+if __name__ == "__main__":
+    run_energy_qa_app()
 
 
