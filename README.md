@@ -1,7 +1,4 @@
-Here's an updated README that includes details about the chatbot functionality:
-
----
-
+🔗Link: https://energyconsumptionforecasting.streamlit.app/
 # Energy Consumption Forecasting
 
 ## Overview
