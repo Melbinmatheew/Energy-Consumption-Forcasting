@@ -177,30 +177,31 @@ def run_energy_forecast_app():
                 color: #ffffff; /* White text */
             }
             .main {
-                background: #ffffff; /* White background */
-                color: #000000; /* Black text */
+                background: #000000; /* Black background */
+                color: #ffffff; /* White text */
                 padding: 2rem;
                 border-radius: 10px;
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
             }
             h1, h2, h3, .stButton>button {
-                color: #000000; /* Black text */
+                color: #ffffff; /* White text */
             }
             .stButton>button {
-                background-color: #ffffff; /* White background */
-                color: #000000; /* Black text */
+                background-color: #333333; /* Dark gray background */
+                color: #ffffff; /* White text */
                 border-radius: 8px;
                 padding: 0.5rem 1rem;
                 font-weight: bold;
             }
             .stTextInput>div>div>input {
-                background-color: #ffffff; /* White background */
-                color: #000000; /* Black text */
-                border: 1px solid #000000; /* Black border */
+                background-color: #333333; /* Dark gray background */
+                color: #ffffff; /* White text */
+                border: 1px solid #ffffff; /* White border */
                 border-radius: 8px;
             }
         </style>
         """, unsafe_allow_html=True)
+
 
 
     # Streamlit app setup
