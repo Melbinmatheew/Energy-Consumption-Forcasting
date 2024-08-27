@@ -174,33 +174,34 @@ def run_energy_forecast_app():
         <style>
             .reportview-container {
                 background: #000000; /* Black background */
-                color: #ffffff; /* White text */
+                color: #ffffff; /* Bright white text */
             }
             .main {
                 background: #000000; /* Black background */
-                color: #ffffff; /* White text */
+                color: #ffffff; /* Bright white text */
                 padding: 2rem;
                 border-radius: 10px;
                 box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
             }
             h1, h2, h3, .stButton>button {
-                color: #ffffff; /* White text */
+                color: #ffffff; /* Bright white text */
             }
             .stButton>button {
-                background-color: #333333; /* Dark gray background */
-                color: #ffffff; /* White text */
+                background-color: #444444; /* Slightly lighter dark gray for buttons */
+                color: #ffffff; /* Bright white text */
                 border-radius: 8px;
                 padding: 0.5rem 1rem;
                 font-weight: bold;
             }
             .stTextInput>div>div>input {
-                background-color: #333333; /* Dark gray background */
-                color: #ffffff; /* White text */
-                border: 1px solid #ffffff; /* White border */
+                background-color: #222222; /* Dark gray background for inputs */
+                color: #ffffff; /* Bright white text */
+                border: 1px solid #ffffff; /* Bright white border */
                 border-radius: 8px;
             }
         </style>
         """, unsafe_allow_html=True)
+
 
 
 
