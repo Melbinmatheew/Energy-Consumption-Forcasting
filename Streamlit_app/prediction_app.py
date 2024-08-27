@@ -171,35 +171,37 @@ def run_energy_forecast_app():
 
     # Custom CSS for a single color theme
     st.markdown("""
-    <style>
-        .reportview-container {
-            background: #1e1e1e;
-            color: #e0e0e0;
-        }
-        .main {
-            background: #2c2c2c;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-        h1, h2, h3, .stButton>button {
-            color: #e0e0e0;
-        }
-        .stButton>button {
-            background-color: #4a90e2;
-            color: white;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            font-weight: bold;
-        }
-        .stTextInput>div>div>input {
-            background-color: #333;
-            color: #e0e0e0;
-            border: 1px solid #4a90e2;
-            border-radius: 8px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+        <style>
+            .reportview-container {
+                background: #000000; /* Black background */
+                color: #ffffff; /* White text */
+            }
+            .main {
+                background: #ffffff; /* White background */
+                color: #000000; /* Black text */
+                padding: 2rem;
+                border-radius: 10px;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            }
+            h1, h2, h3, .stButton>button {
+                color: #000000; /* Black text */
+            }
+            .stButton>button {
+                background-color: #ffffff; /* White background */
+                color: #000000; /* Black text */
+                border-radius: 8px;
+                padding: 0.5rem 1rem;
+                font-weight: bold;
+            }
+            .stTextInput>div>div>input {
+                background-color: #ffffff; /* White background */
+                color: #000000; /* Black text */
+                border: 1px solid #000000; /* Black border */
+                border-radius: 8px;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
 
     # Streamlit app setup
     st.title('💡 Energy Consumption Forecast')
