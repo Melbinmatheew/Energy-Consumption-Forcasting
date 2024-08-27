@@ -11,32 +11,48 @@ import streamlit as st
 import os
 
 def run_energy_qa_app():
-    # Function to load saved components
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     VECTOR_STORE_PATH = os.path.join(BASE_DIR, 'vector_store.index')
     DOCSTORE_PATH = os.path.join(BASE_DIR, 'docstore.pkl')
     EMBEDDING_PATH = os.path.join(BASE_DIR, 'embedding.pkl')
 
     def load_components():
-        if not os.path.exists(VECTOR_STORE_PATH):
-            print(f"File not found: {VECTOR_STORE_PATH}")
-        else:
+        try:
+            if not os.path.exists(VECTOR_STORE_PATH):
+                raise FileNotFoundError(f"File not found: {VECTOR_STORE_PATH}")
             index = faiss.read_index(VECTOR_STORE_PATH)
-    
-        with open(DOCSTORE_PATH, "rb") as f:
-            docstore = pickle.load(f)
-        
-        with open(DOCSTORE_PATH, "rb") as f:
-            index_to_docstore_id = pickle.load(f)
-        
-        with open(EMBEDDING_PATH, "rb") as f:
-            embeddings = pickle.load(f)
-    
-        return index, docstore, index_to_docstore_id, embeddings
+            
+            with open(DOCSTORE_PATH, "rb") as f:
+                docstore = pickle.load(f)
+            
+            with open(DOCSTORE_PATH, "rb") as f:
+                index_to_docstore_id = pickle.load(f)
+            
+            with open(EMBEDDING_PATH, "rb") as f:
+                embeddings = pickle.load(f)
+            
+            # Debug: Print information about loaded components
+            print(f"Index shape: {index.d}, {index.ntotal}")
+            print(f"Docstore size: {len(docstore)}")
+            print(f"Index to docstore id size: {len(index_to_docstore_id)}")
+            print(f"Embeddings type: {type(embeddings)}")
+            
+            return index, docstore, index_to_docstore_id, embeddings
+        except Exception as e:
+            st.error(f"Error loading components: {str(e)}")
+            raise
 
-    # Function to create FAISS vector store
     def create_vector_store(embeddings, index, docstore, index_to_docstore_id):
-        return FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
+        try:
+            vector_store = FAISS(embeddings.embed_query, index, docstore, index_to_docstore_id)
+            # Test the vector store
+            test_query = "energy consumption"
+            test_result = vector_store.similarity_search(test_query, k=1)
+            print(f"Test query result: {test_result}")
+            return vector_store
+        except Exception as e:
+            st.error(f"Error creating vector store: {str(e)}")
+            return None
 
     # Function to initialize language model
     def init_language_model():
@@ -144,66 +160,71 @@ def run_energy_qa_app():
 
     # Main function to run the Streamlit app
     def main():
-        # Set page config at the very start
-        # st.set_page_config(page_title="Energy Q&A Assistant", page_icon="⚡", layout="wide")
-        
         set_custom_style()
         create_sidebar()
 
         st.title("✨ Energy Q&A Assistant")
         st.markdown("Ask questions about energy consumption and get informed answers!")
 
-        # Load components
-        index, docstore, index_to_docstore_id, embeddings = load_components()
-        
-        # Create vector store
-        vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
-        
-        # Initialize language model
-        llm = init_language_model()
-        
-        # Create prompt
-        prompt = create_prompt()
-        
-        # Create retrieval chain
-        retrieval_chain = create_chains(llm, prompt, vector_store)
-        
-        # Define general responses
-        general_responses = {
-            "hello": "Hello! How can I assist you today?",
-            "hi": "Hi! How can I help you?",
-            "how are you": "I'm just a bot, but I'm here to help! How can I assist you today?",
-            "who are you": "I am a Q&A assistant specializing in energy-related topics, but I can also handle general queries.",
-            "how can you assist me": "I can answer questions related to energy consumption, ways to reduce energy usage, tips for saving energy, and more. Feel free to ask anything related to energy!",
-            "what can you do": "I can provide information on energy usage, tips on saving energy, and help you understand your energy consumption better.",
-            "thank you": "You're welcome! If you have any more questions, feel free to ask.",
-            "goodbye": "Goodbye! Have an energy-efficient day!",
-        }
-        
-        # Initialize session state for conversation history
-        if 'conversation' not in st.session_state:
-            st.session_state.conversation = []
+        try:
+            # Load components
+            index, docstore, index_to_docstore_id, embeddings = load_components()
+            
+            # Create vector store
+            vector_store = create_vector_store(embeddings, index, docstore, index_to_docstore_id)
+            
+            if vector_store is None:
+                st.error("Failed to create vector store. Please try again later.")
+                return
 
-        for i, (question, answer) in enumerate(st.session_state.conversation):
-            display_chat_message("human", question, "🫅🏻")
-            display_chat_message("bot", answer, "🧙🏻‍♂️")
-
-        # Create a text input for user questions
-        user_question = st.chat_input("Ask a question about energy:")
+            # Initialize language model
+            llm = init_language_model()
+            
+            # Create prompt
+            prompt = create_prompt()
+            
+            # Create retrieval chain
+            retrieval_chain = create_chains(llm, prompt, vector_store)
         
-        if user_question:
-            display_chat_message("human", user_question, "🫅🏻")
+            # Define general responses
+            general_responses = {
+                "hello": "Hello! How can I assist you today?",
+                "hi": "Hi! How can I help you?",
+                "how are you": "I'm just a bot, but I'm here to help! How can I assist you today?",
+                "who are you": "I am a Q&A assistant specializing in energy-related topics, but I can also handle general queries.",
+                "how can you assist me": "I can answer questions related to energy consumption, ways to reduce energy usage, tips for saving energy, and more. Feel free to ask anything related to energy!",
+                "what can you do": "I can provide information on energy usage, tips on saving energy, and help you understand your energy consumption better.",
+                "thank you": "You're welcome! If you have any more questions, feel free to ask.",
+                "goodbye": "Goodbye! Have an energy-efficient day!",
+            }
+            
+            # Initialize session state for conversation history
+            if 'conversation' not in st.session_state:
+                st.session_state.conversation = []
 
-            with st.spinner("Thinking..."):
-                response = get_response(user_question, retrieval_chain, general_responses)
-                display_chat_message("bot", response, "🧙🏻‍♂️")
+            for i, (question, answer) in enumerate(st.session_state.conversation):
+                display_chat_message("human", question, "🫅🏻")
+                display_chat_message("bot", answer, "🧙🏻‍♂️")
 
-            # Add the new question and answer to the conversation history
-            st.session_state.conversation.append((user_question, response))
+            # Create a text input for user questions
+            user_question = st.chat_input("Ask a question about energy:")
+            
+            if user_question:
+                display_chat_message("human", user_question, "🫅🏻")
+
+                with st.spinner("Thinking..."):
+                    response = get_response(user_question, retrieval_chain, general_responses)
+                    display_chat_message("bot", response, "🧙🏻‍♂️")
+
+                # Add the new question and answer to the conversation history
+                st.session_state.conversation.append((user_question, response))
+
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+            st.stop()
 
     main()
 
 if __name__ == "__main__":
     run_energy_qa_app()
-
 
