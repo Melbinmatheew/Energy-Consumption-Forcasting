@@ -13,7 +13,7 @@ import os
 def run_energy_qa_app():
     # Function to load saved components
     def load_components():
-        file_path = os.path.abspath("../Streamlit_app/vector_store.index")
+        file_path = os.path.abspath("..\Streamlit_app\prophet_model.pkl")
         index = faiss.read_index(file_path)
         
         with open("..\Streamlit_app\docstore.pkl", "rb") as f:
