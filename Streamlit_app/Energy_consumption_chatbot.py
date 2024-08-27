@@ -13,8 +13,10 @@ import os
 def run_energy_qa_app():
     # Function to load saved components
     def load_components():
-        file_path = os.path.abspath("../Streamlit_app/prophet_model.pkl")
-        index = faiss.read_index(file_path)
+        if not os.path.exists("..\Streamlit_app\vector_store.index"):
+            print(f"File not found: {'..\Streamlit_app\vector_store.index'}")
+        else:
+            index = faiss.read_index('..\Streamlit_app\vector_store.index')
         
         with open("..\Streamlit_app\docstore.pkl", "rb") as f:
             docstore = pickle.load(f)
