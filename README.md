@@ -73,9 +73,3 @@ To set up the project locally, follow these steps:
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request with your changes. For major changes, open an issue to discuss your proposed modifications.
-
-
-
----
-
-Feel free to adjust or expand upon any section based on your project's specifics!
