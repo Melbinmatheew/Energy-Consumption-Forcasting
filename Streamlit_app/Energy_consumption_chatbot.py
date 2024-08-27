@@ -21,7 +21,10 @@ def run_energy_qa_app():
         with open("..\Streamlit_app\docstore.pkl", "rb") as f:
             docstore = pickle.load(f)
         
-        with open("./docstore.pkl", "rb") as f:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_dir, 'docstore.pkl')
+
+        with open(file_path, "rb") as f:
             index_to_docstore_id = pickle.load(f)
         
         with open("..\Streamlit_app\embedding.pkl", "rb") as f:
