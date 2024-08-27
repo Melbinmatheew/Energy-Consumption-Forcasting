@@ -12,24 +12,26 @@ import os
 
 def run_energy_qa_app():
     # Function to load saved components
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    VECTOR_STORE_PATH = os.path.join(BASE_DIR, 'vector_store.index')
+    DOCSTORE_PATH = os.path.join(BASE_DIR, 'docstore.pkl')
+    EMBEDDING_PATH = os.path.join(BASE_DIR, 'embedding.pkl')
+
     def load_components():
-        if not os.path.exists("..\Streamlit_app\vector_store.index"):
-            print(f"File not found: {'..\Streamlit_app\vector_store.index'}")
+        if not os.path.exists(VECTOR_STORE_PATH):
+            print(f"File not found: {VECTOR_STORE_PATH}")
         else:
-            index = faiss.read_index('..\Streamlit_app\vector_store.index')
-        
-        with open("..\Streamlit_app\docstore.pkl", "rb") as f:
+            index = faiss.read_index(VECTOR_STORE_PATH)
+    
+        with open(DOCSTORE_PATH, "rb") as f:
             docstore = pickle.load(f)
         
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(base_dir, 'docstore.pkl')
-
-        with open(file_path, "rb") as f:
+        with open(DOCSTORE_PATH, "rb") as f:
             index_to_docstore_id = pickle.load(f)
         
-        with open("..\Streamlit_app\embedding.pkl", "rb") as f:
+        with open(EMBEDDING_PATH, "rb") as f:
             embeddings = pickle.load(f)
-        
+    
         return index, docstore, index_to_docstore_id, embeddings
 
     # Function to create FAISS vector store
