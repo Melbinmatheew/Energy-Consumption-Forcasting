@@ -169,33 +169,33 @@ def run_energy_forecast_app():
     def categorize_month(month):
         return pd.cut([month], bins=3, labels=False)[0]
 
-    # Custom CSS for black theme with enhancements
+    # Custom CSS for a single color theme
     st.markdown("""
     <style>
         .reportview-container {
-            background: linear-gradient(135deg, #1c1e24 10%, #23262d 100%);
-            color: #fafafa;
+            background: #1e1e1e;
+            color: #e0e0e0;
         }
         .main {
-            background: #2e3038;
+            background: #2c2c2c;
             padding: 2rem;
             border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         }
         h1, h2, h3, .stButton>button {
-            color: #fafafa;
+            color: #e0e0e0;
         }
         .stButton>button {
-            background-color: #4e8cff;
+            background-color: #4a90e2;
             color: white;
             border-radius: 8px;
             padding: 0.5rem 1rem;
             font-weight: bold;
         }
         .stTextInput>div>div>input {
-            background-color: #3a3d46;
-            color: #fafafa;
-            border: 1px solid #4e8cff;
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #4a90e2;
             border-radius: 8px;
         }
     </style>
@@ -227,8 +227,8 @@ def run_energy_forecast_app():
     st.header('📅 Input Data')
 
     # Date input with a broader date range and calendar view
-    min_date = datetime.now().date() - timedelta(days=365*10) 
-    max_date = datetime.now().date() + timedelta(days=365*10) 
+    min_date = datetime.now().date() - timedelta(days=365*10)
+    max_date = datetime.now().date() + timedelta(days=365*10)
     start_date_input = st.date_input("Select the start date:", min_value=min_date, max_value=max_date)
     start_date = pd.to_datetime(start_date_input)
 
@@ -268,23 +268,31 @@ def run_energy_forecast_app():
     # Make predictions
     forecast = loaded_model.predict(user_data)
 
+    # Rename columns in forecast DataFrame
+    forecast = forecast.rename(columns={
+        'ds': 'Date',
+        'yhat': 'Energy Usage',
+        'yhat_lower': 'Minimum Energy Usage',
+        'yhat_upper': 'Maximum Energy Usage'
+    })
+
     # Display predictions
     st.header('🚀 5-Day Forecast')
-    st.dataframe(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].style.format({'yhat': '{:.2f}', 'yhat_lower': '{:.2f}', 'yhat_upper': '{:.2f}'}))
+    st.dataframe(forecast[['Date', 'Energy Usage', 'Minimum Energy Usage', 'Maximum Energy Usage']].style.format({'Energy Usage': '{:.2f}', 'Minimum Energy Usage': '{:.2f}', 'Maximum Energy Usage': '{:.2f}'}))
 
     # Visualization section
     st.header('📊 Forecast Visualization')
 
     # Plot 1: Forecast with confidence interval
-    fig1 = px.line(forecast, x='ds', y=['yhat', 'yhat_lower', 'yhat_upper'], 
-                   labels={'ds': 'Date', 'value': 'Energy Consumption', 'variable': 'Forecast'},
+    fig1 = px.line(forecast, x='Date', y=['Energy Usage', 'Minimum Energy Usage', 'Maximum Energy Usage'], 
+                   labels={'Date': 'Date', 'value': 'Energy Consumption', 'variable': 'Forecast'},
                    title='5-Day Energy Consumption Forecast')
     fig1.update_layout(legend_title_text='', template="plotly_dark")
     st.plotly_chart(fig1)
 
     # Plot 2: Factor heatmap with predicted consumption
     heatmap_data = user_data.copy()
-    heatmap_data['Predicted Consumption'] = forecast['yhat']
+    heatmap_data['Predicted Consumption'] = forecast['Energy Usage']
     fig2 = px.imshow(heatmap_data[['temp', 'Is_Working_Day', 'Predicted Consumption']].T,
                      labels=dict(x="Date", y="Factor", color="Value"),
                      x=heatmap_data['ds'].dt.date,
@@ -312,5 +320,5 @@ def run_energy_forecast_app():
     )
 
 # Uncomment to run the app directly
-# if __name__ == "__main__":
-#     run_energy_forecast_app()
+if __name__ == "__main__":
+    run_energy_forecast_app()
