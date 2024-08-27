@@ -13,19 +13,17 @@ import os
 def run_energy_qa_app():
     # Function to load saved components
     def load_components():
-        file_path = os.path.abspath(r"..\Streamlit_app\vector_store.index")
-        if os.path.exists(file_path):
-            print(f"File exists: {file_path}")
-        else:
-            print(f"File does not exist: {file_path}")
+        base_path = os.path.join(os.path.dirname(__file__), "..", "Streamlit_app")
         
-        with open("..\Streamlit_app\docstore.pkl", "rb") as f:
+        index = faiss.read_index(os.path.join(base_path, "vector_store.index"))
+        
+        with open(os.path.join(base_path, "docstore.pkl"), "rb") as f:
             docstore = pickle.load(f)
         
-        with open("..\Streamlit_app\index_to_docstore_id.pkl", "rb") as f:
+        with open(os.path.join(base_path, "index_to_docstore_id.pkl"), "rb") as f:
             index_to_docstore_id = pickle.load(f)
         
-        with open("..\Streamlit_app\embedding.pkl", "rb") as f:
+        with open(os.path.join(base_path, "embedding.pkl"), "rb") as f:
             embeddings = pickle.load(f)
         
         return index, docstore, index_to_docstore_id, embeddings
